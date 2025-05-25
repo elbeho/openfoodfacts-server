@@ -13,13 +13,13 @@
     # Note that this means /opt/product-opener/html/images/product wont be connected to product_images volume
     # Sadly, there is no sane way to do this, while retaining compatibility with prod
     # (which requires images/product to be empty in git)
-    - ./:/opt/product-opener
+    - ./:/opt/product-opener:z
     # dynamic entrypoint
-    - ./docker/docker-entrypoint.sh:/docker-entrypoint.sh
+    - ./docker/docker-entrypoint.sh:/docker-entrypoint.sh:z
     # we use this for debugging, from times to times
-    - ./debug:/mnt/podata/debug/
+    - ./debug:/mnt/podata/debug/:z
     # sftp folder for the pro platform
-    - ./sftp:/mnt/podata/sftp/
+    - ./sftp:/mnt/podata/sftp/:z
   # Allow the container to connect to the host when using Linux.
   # This is needed to access other services that are running outside of Docker
   # e.g. when developing with openfoodfacts-query
@@ -31,7 +31,9 @@ x-minion-db-network: &minion-db-network
     # we need to be on default, but also on a dedicated network (ease sharing with pro in dev)
     # see also docs/dev/explain-pro-dev-setup.md
     minion_db:
-    default:
+    # prevent podman build
+    #default:
+    off_network:
 
 services:
   postgres:
@@ -66,16 +68,16 @@ services:
     command: ["npm", "run", "build:dynamic"]
     volumes:
       # Static dist/ assets (JS, CSS, Icons, Image attributes)
-      - icons_dist:/opt/product-opener/html/images/icons/dist
-      - js_dist:/opt/product-opener/html/js/dist
-      - css_dist:/opt/product-opener/html/css/dist
+      - icons_dist:/opt/product-opener/html/images/icons/dist:z
+      - js_dist:/opt/product-opener/html/js/dist:z
+      - css_dist:/opt/product-opener/html/css/dist:z
       # mount local folder for reload on dev changes, we follow Dockerfile.frontend COPYs
-      - ./package.json:/opt/product-opener/package.json
-      - ./package-lock.json:/opt/product-opener/package-lock.json
-      - ./html:/opt/product-opener/html
-      - ./icons:/opt/product-opener/icons
-      - ./scss:/opt/product-opener/scss
-      - ./gulpfile.ts:/opt/product-opener/gulpfile.ts
+      - ./package.json:/opt/product-opener/package.json:z
+      - ./package-lock.json:/opt/product-opener/package-lock.json:z
+      - ./html:/opt/product-opener/html:z
+      - ./icons:/opt/product-opener/icons:z
+      - ./scss:/opt/product-opener/scss:z
+      - ./gulpfile.ts:/opt/product-opener/gulpfile.ts:z
   frontend:
     image: openfoodfacts-server/frontend:dev
     build:
@@ -85,13 +87,15 @@ services:
         USER_UID: ${USER_UID:-1000}
         USER_GID: ${USER_GID:-1000}
     volumes:
-      - ./html:/opt/product-opener/html/
-      - ./icons:/opt/product-opener/icons
-      - ./scss:/opt/product-opener/scss
-      - ./gulpfile.ts:/opt/product-opener/
-      - ./snyk:/opt/product-opener/
+      - ./html:/opt/product-opener/html/:z
+      - ./icons:/opt/product-opener/icons:z
+      - ./scss:/opt/product-opener/scss:z
+      - ./gulpfile.ts:/opt/product-opener/:z
+      - ./snyk:/opt/product-opener/:z
     networks:
-        default:
+        # prevent podman build
+        #default:
+        off_network:
           aliases:
             # trick: make it possible for robotoff to reach it internally, 
             # using localhost domain
@@ -119,3 +123,7 @@ networks:
   # this is a specific network to enable pro platform to join the postgres db
   minion_db:
     name: ${PO_COMMON_PREFIX:-}minion_db
+  # prevent podman build
+  #default:
+  off_network:
+
